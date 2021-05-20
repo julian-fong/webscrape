@@ -19,6 +19,11 @@ def html_parse(value):
     boo = True
     driver = webdriver.Chrome(ChromeDriverManager().install(), options = options)
     driver.get('https://soundcloud.com/'+value+'/tracks')
+    soup = BeautifulSoup(driver.page_source, 'html.parser')
+    if soup.find('title').text == "Something went wrong on SoundCloud":
+        boo = False
+        soup = None
+
     while(boo):
         soup = BeautifulSoup(driver.page_source, 'html.parser')
         if soup.find('div', class_='paging-eof') is None:
@@ -29,20 +34,23 @@ def html_parse(value):
     return soup
 
 def add_rows(value, soup):
-    csv_file = open(f'{value}.csv', 'w', encoding='utf-8')
-    csv_writer = csv.writer(csv_file)
-    csv_writer.writerow(['Song Name', 'Number of Plays'])
-    for element in soup.find_all('li', class_='soundList__item'):
-        #print(element)
-        name = element.find('div', attrs={'role':'group', 'class':'sound streamContext'})['aria-label']
-        name = name.split(" by ")[0].split('Track: ')[1]
+    if soup is not None:
+            csv_file = open(f'{value}.csv', 'w', encoding='utf-8')
+            csv_writer = csv.writer(csv_file)
+            csv_writer.writerow(['Song Name', 'Number of Plays'])
+            for element in soup.find_all('li', class_='soundList__item'):
+                name = element.find('div', attrs={'role':'group', 'class':'sound streamContext'})['aria-label']
+                name = name.split(" by ")[0].split('Track: ')[1]
 
-        num = element.find_all('span', class_='sc-visuallyhidden')[1].text
-        num = num.split(' ')[0].split(',')
-        num = int(num[0]+num[1])
-        csv_writer.writerow([name, num])
-    print("done")
-    csv_file.close()
+                num = element.find_all('span', class_='sc-visuallyhidden')[1].text
+                num = num.split(' ')[0].split(',')
+                num = int(num[0]+num[1])
+
+                csv_writer.writerow([name, num])
+            print("done")
+            csv_file.close()
+    else:
+        print("You have inputted an invalid artist")
 
 if __name__ == "__main__":
     artist = artist_name()
